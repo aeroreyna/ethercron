@@ -1,101 +1,119 @@
 <template lang="pug">
-#LandingPage
+#LandingPage.container
+  .row
+    .col.s2
+      h5 Address
+    .col.s8
+      input.center(type="text" v-model="addrs")
+    .col.s2
+      p.btn(v-on:click="getAddressInfo") Go
+  .row
+    .someDiv(v-if="info.ETH")
+      h5 Total USD: ${{usmoney.toFixed(2)}}
+      table
+        tr
+          th Name
+          th Price Unit
+          th Units
+          th Total US
+        tr
+          th Ethereum
+          th ${{(price.ETH).toFixed(2)}}
+          th {{info.ETH.balance}}
+          th ${{(price.ETH * info.ETH.balance).toFixed(2)}}
+        tr(v-for="t in info.tokens" v-if="price[t.tokenInfo.symbol]")
+          th
+            b {{t.tokenInfo.name}}
+          th ${{price[t.tokenInfo.symbol]}}
+          th {{t.balance/Math.pow(10,t.tokenInfo.decimals)}}
+          th ${{(t.balance/Math.pow(10,t.tokenInfo.decimals) * price[t.tokenInfo.symbol]).toFixed(2)}}
 </template>
 
 <script>
   import SystemInformation from './LandingPage/SystemInformation'
 
+  var getAddressInfo = function(addr, wallet){
+    axios.get('https://api.ethplorer.io/getAddressInfo/' + addr + '?apiKey=freekey')
+    .then(function (response) {
+      //console.log(response);
+      wallet.info = response.data;
+      response.data.tokens.forEach((t)=>{
+        wallet.$set(wallet.price, t.tokenInfo.symbol, t.tokenInfo.price.rate);
+      });
+    })
+    .catch(function (error) {
+      console.log(error);
+    });
+  }
+
+  var ethData = function(objData){
+    axios.get('https://www.coincap.io/page/ETH')
+    .then(function (response) {
+      //console.log(response);
+      objData.ETH = response.data;
+      objData.$set(objData.price, "ETH", response.data.price_usd);
+    })
+    .catch(function (error) {
+      console.log(error);
+    });
+  }
+
+  var updateAllPrices = function(objData){
+    console.log('Refresh Princes');
+    Object.keys(objData.price).forEach((coin)=>{
+      var temp = coin;
+      axios.get("https://min-api.cryptocompare.com/data/price?fsym=" + coin + "&tsyms=BTC,USD,EUR,ETH")
+      .then(function (response) {
+        console.log(response, temp);
+        objData.price[temp]  = response.data.USD;
+      })
+      .catch(function (error) {
+        console.log(error);
+      });
+    });
+    setTimeout(()=>{
+      updateAllPrices(objData);
+    }, 10000);
+  }
+
   export default {
     name: 'landing-page',
+    data(){
+      return {
+        addrs: localStorage.etherAddrs ? localStorage.etherAddrs : "0x8d12a197cb00d4747a1fe03395095ce2a5cc6819",
+        info: {},
+        price: {},
+      }
+    },
     components: { SystemInformation },
     methods: {
       open (link) {
         this.$electron.shell.openExternal(link)
+      },
+      getAddressInfo(){
+        localStorage.etherAddrs = this.addrs;
+        getAddressInfo(this.addrs, this);
+        ethData(this);
+        setTimeout(()=>{
+          updateAllPrices(this);
+        }, 30*1000);
       }
-    }
+    },
+    computed:{
+      usmoney(){
+        var count = 0;
+        count += this.price["ETH"] * this.info.ETH.balance
+        this.info.tokens.forEach((t)=>{
+          if(this.price[t.tokenInfo.symbol]){
+            count += t.balance/Math.pow(10,t.tokenInfo.decimals) * this.price[t.tokenInfo.symbol];
+          }
+        });
+        return count;
+      }
+    },
   }
 </script>
 
 <style>
-  @import url('https://fonts.googleapis.com/css?family=Source+Sans+Pro');
 
-  * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-  }
-
-  body { font-family: 'Source Sans Pro', sans-serif; }
-
-  #wrapper {
-    background:
-      radial-gradient(
-        ellipse at top left,
-        rgba(255, 255, 255, 1) 40%,
-        rgba(229, 229, 229, .9) 100%
-      );
-    height: 100vh;
-    padding: 60px 80px;
-    width: 100vw;
-  }
-
-  #logo {
-    height: auto;
-    margin-bottom: 20px;
-    width: 420px;
-  }
-
-  main {
-    display: flex;
-    justify-content: space-between;
-  }
-
-  main > div { flex-basis: 50%; }
-
-  .left-side {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .welcome {
-    color: #555;
-    font-size: 23px;
-    margin-bottom: 10px;
-  }
-
-  .title {
-    color: #2c3e50;
-    font-size: 20px;
-    font-weight: bold;
-    margin-bottom: 6px;
-  }
-
-  .title.alt {
-    font-size: 18px;
-    margin-bottom: 10px;
-  }
-
-  .doc p {
-    color: black;
-    margin-bottom: 10px;
-  }
-
-  .doc button {
-    font-size: .8em;
-    cursor: pointer;
-    outline: none;
-    padding: 0.75em 2em;
-    border-radius: 2em;
-    display: inline-block;
-    color: #fff;
-    background-color: #4fc08d;
-    transition: all 0.15s ease;
-    box-sizing: border-box;
-    border: 1px solid #4fc08d;
-  }
-
-  .doc button.alt {
-    color: #42b983;
-    background-color: transparent;
-  }
 </style>

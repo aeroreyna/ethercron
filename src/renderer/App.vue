@@ -1,8 +1,8 @@
 <template lang="pug">
   #app
     .row
-      .col.s12
-        h1 Navegation:
+      .col.s12.center
+        h4 Etherctron Wallet:
     router-view
 </template>
 

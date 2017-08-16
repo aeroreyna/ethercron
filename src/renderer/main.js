@@ -1,7 +1,7 @@
 var $ = window.jQuery = require('jquery');
 require('materialize-css/dist/css/materialize.css')
 require('materialize-css/dist/js/materialize.js')
-//window.axios = require('axios')
+window.axios = require('axios')
 
 import Vue from 'vue'
 import axios from 'axios'
