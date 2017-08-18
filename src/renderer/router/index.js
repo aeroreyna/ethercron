@@ -11,8 +11,18 @@ export default new Router({
       component: require('@/components/LandingPage')
     },
     {
+      path: '/history',
+      name: 'History',
+      component: require('@/components/history')
+    },
+    {
       path: '*',
       redirect: '/'
-    }
-  ]
+    },
+  ],
+  scrollBehavior (to, from, savedPosition) {
+    console.log(to, from, savedPosition);
+    return { x: 0, y: 0 }
+  }
+
 })

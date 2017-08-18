@@ -2,13 +2,19 @@
   #app
     .row
       .col.s12.center
-        h4 Etherctron Wallet:
+        h4 Etherctron
+        p {{addrs}}
     router-view
 </template>
 
 <script>
   export default {
-    name: 'etherctron'
+    name: 'etherctron',
+    data(){
+      return {
+        addrs: localStorage.etherAddrs ? localStorage.etherAddrs : undefined,
+      }
+    }
   }
 </script>
 
