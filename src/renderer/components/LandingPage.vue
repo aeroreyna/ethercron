@@ -1,132 +1,122 @@
 <template lang="pug">
 #LandingPage.container
-  .row(v-if="!info.ETH")
+  .row(v-if="!addrs || lag")
     .col.s2
       h5 Address
     .col.s8
       input.center(type="text" v-model="addrs")
     .col.s2
-      p.btn(v-on:click="getAddressInfo") Go
+      p.btn(v-on:click="getAddressInfoL") Go
   .row
-    .someDiv(v-if="info.ETH")
-      h5 Total USD: ${{usmoney.toFixed(2)}}
-      table
-        tr
-          th Name
-          th Price Unit
-          th Units
-          th Total US
-        tr
-          th Ethereum
-          th ${{(price.ETH).toFixed(2)}}
-          th {{info.ETH.balance}}
-          th ${{(price.ETH * info.ETH.balance).toFixed(2)}}
-        tr(v-for="t in info.tokens")
-          th(v-on:click="$router.push({ name: 'History', query:{short: t.tokenInfo.symbol, name: t.tokenInfo.name, addrs, tkAddrs: t.tokenInfo.address, price: price[t.tokenInfo.symbol]} })")
-            b {{t.tokenInfo.name}}
-          th
-            p(v-if="price[t.tokenInfo.symbol]") ${{price[t.tokenInfo.symbol]}}
-          th {{t.balance/Math.pow(10,t.tokenInfo.decimals)}}
-          th
-            p(v-if="price[t.tokenInfo.symbol]") ${{(t.balance/Math.pow(10,t.tokenInfo.decimals) * price[t.tokenInfo.symbol]).toFixed(2)}}
+    .someDiv(v-if="ETH && !lag")
+      #balance-general.center
+        h4 Balance: ${{usmoney().toFixed(2)}}
+        h5
+          small {{ETH.totalIn}} - {{ETH.totalOut}}
+      .row#tokens
+        .col.s12.ether
+          .col.s9
+            h5 Ether
+            h5
+              small {{ETH.balance}}
+          .col.s3
+            h5.right-align ${{(ETH.balance * ETH.price).toFixed(2)}}
+            p.right-align {{ETH.price.toFixed(2)}}
+        .col.s12.m6.tocken(v-if="tokens" v-for="(t, i) in tokens" v-on:click="selected = selected!=i ? i:-1; getHistoricPrice();" v-bind:class="{active:selected==i}")
+          .col.s7
+            h5 {{t.name}}
+            h5
+              small {{t.amount}}
+          .col.s5
+            h5.right-align ${{t.balance.toFixed(2)}}
+            p.right-align {{t.price}} USD
+            p.right-align {{t.priceETH}} ETH
+          .col.s12(v-if="t.txs && selected == i ")
+            .col.s6.center
+              p Invest
+              h5 {{sumTx(t.txs).toFixed(2)}}
+            .col.s5.center
+              p Profit
+              h5 {{(t.balance - sumTx(t.txs)).toFixed(2)}}
+            .col.s12(v-if="lastTrendData.length > 0")
+              Trend(:data="lastTrendData", :gradient="['#6fa8dc', '#42b983', '#2c3e50']",  auto-draw, smooth)
 </template>
 
 <script>
-  import SystemInformation from './LandingPage/SystemInformation'
-
-  var getAddressInfo = function(addr, wallet){
-    //console.log(addr, wallet)
-    axios.get('https://api.ethplorer.io/getAddressInfo/' + addr + '?apiKey=freekey')
-    .then(function (response) {
-      //console.log(response);
-      wallet.info = response.data;
-      response.data.tokens.forEach((t)=>{
-        wallet.$set(wallet.price, t.tokenInfo.symbol, t.tokenInfo.price.rate);
-      });
-      updateAllPrices(wallet);
-    })
-    .catch(function (error) {
-      console.log(error);
-    });
-  }
-
-  var ethData = function(objData){
-    axios.get('https://www.coincap.io/page/ETH')
-    .then(function (response) {
-      //console.log(response);
-      objData.ETH = response.data;
-      objData.$set(objData.price, "ETH", response.data.price_usd);
-    })
-    .catch(function (error) {
-      console.log(error);
-    });
-  }
-
-  var updateAllPrices = function(objData){
-    console.log('Refresh Princes');
-    localStorage.info = JSON.stringify(objData.info);
-    localStorage.price = JSON.stringify(objData.price);
-    Object.keys(objData.price).forEach((coin)=>{
-      var temp = coin;
-      axios.get("https://min-api.cryptocompare.com/data/price?fsym=" + coin + "&tsyms=BTC,USD,EUR,ETH")
-      .then(function (response) {
-        //console.log(response, temp);
-        objData.price[temp]  = response.data.USD;
-      })
-      .catch(function (error) {
-        console.log(error);
-      });
-    });
-    setTimeout(()=>{
-      updateAllPrices(objData);
-    }, 10000);
-  }
-
+  import Trend from 'vuetrend';
   export default {
     name: 'landing-page',
     data(){
-      return {
-        addrs: localStorage.etherAddrs ? localStorage.etherAddrs : "0x8d12a197cb00d4747a1fe03395095ce2a5cc6819",
-        info: localStorage.info ? JSON.parse(localStorage.info) : {},
-        price: localStorage.price ? JSON.parse(localStorage.price) : {},
-      }
+      return api.data
     },
-    components: { SystemInformation },
+    components:{
+      Trend
+    },
     mounted(){
-      if(localStorage.etherAddrs){
-        console.log(this.addrs)
-        this.getAddressInfo();
-      }
     },
     methods: {
       open (link) {
         this.$electron.shell.openExternal(link)
       },
-      getAddressInfo(){
+      getHistoricPrice(){
+        if(this.selected == -1) return 0;
+        var coin = this.tokens[this.selected].short;
+        this.lastTrendData = [];
+        axios.get('https://min-api.cryptocompare.com/data/histoday?fsym=' + coin + '&tsym=USD&limit=60')
+        .then((response)=>{
+          var arr = response.data.Data.map((i)=>{
+            return i.close * 100;
+          });
+          this.lastTrendData = arr;
+        })
+        .catch(function(err){
+          console.log(err);
+        });
+      },
+      getAddressInfoL(){
         localStorage.etherAddrs = this.addrs;
-        getAddressInfo(this.addrs, this);
-        //ethData(this);
-        /*setTimeout(()=>{
-          updateAllPrices(this);
-        }, 30*1000);
-        */
-      }
-    },
-    computed:{
+        api.getAddressInfo();
+      },
       usmoney(){
         var count = 0;
-        count += this.price["ETH"] * this.info.ETH.balance
-        this.info.tokens.forEach((t)=>{
-          if(this.price[t.tokenInfo.symbol]){
-            count += t.balance/Math.pow(10,t.tokenInfo.decimals) * this.price[t.tokenInfo.symbol];
+        count += this.ETH.price * this.ETH.balance
+        this.tokens.forEach((t)=>{
+          if(t.price){
+            count += t.balance;
           }
         });
         return count;
+      },
+      sumTx(txs){
+        var sum = 0;
+        txs.forEach((tx)=>{
+          sum += tx.price * tx.amount;
+        })
+        return sum
       }
+    },
+    computed:{
+
     },
   }
 </script>
 
 <style>
-
+#LandingPage{
+}
+.tocken{
+  transition: all 0.2s;
+}
+.tocken:hover{
+}
+.active{
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+  transition: all 0.2s;
+  background-color: white;
+  position: fixed;
+  left: 50% !important;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  max-width: 90%;
+}
 </style>

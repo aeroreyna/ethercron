@@ -3,6 +3,9 @@ require('materialize-css/dist/css/materialize.css')
 require('materialize-css/dist/js/materialize.js')
 window.axios = require('axios')
 
+window.api = require('@/components/apiHandler');
+api.getAddressInfo();
+
 import Vue from 'vue'
 import axios from 'axios'
 

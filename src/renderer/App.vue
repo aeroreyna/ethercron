@@ -1,9 +1,13 @@
 <template lang="pug">
   #app
     .row
-      .col.s12.center
-        h4 Etherctron
-        p {{addrs}}
+      .col.s12
+        .row
+          .left
+            p settings
+          .right
+            p Online - Noti - USD
+              span  ---
     router-view
 </template>
 
