@@ -6,6 +6,12 @@ window.axios = require('axios')
 window.api = require('@/components/apiHandler');
 api.getAddressInfo();
 
+import HitBTC from 'hitbtc-api';
+window.HitBTC = HitBTC;
+
+//const restClient = new HitBTC({ key, secret, isDemo: false });
+//const websocketClient = new HitBTC.WebsocketClient({ key, secret, isDemo: false });
+
 import Vue from 'vue'
 import axios from 'axios'
 

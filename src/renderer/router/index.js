@@ -11,9 +11,9 @@ export default new Router({
       component: require('@/components/LandingPage')
     },
     {
-      path: '/history',
-      name: 'History',
-      component: require('@/components/history')
+      path: '/hitbtc',
+      name: 'HitBtc',
+      component: require('@/components/hitbtc')
     },
     {
       path: '*',

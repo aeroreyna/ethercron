@@ -3,11 +3,8 @@
     .row
       .col.s12
         .row
-          .left
-            p settings
-          .right
-            p Online - Noti - USD
-              span  ---
+          .right(v-on:click="logout()")
+            p Logout
     router-view
 </template>
 
@@ -18,6 +15,12 @@
       return {
         addrs: localStorage.etherAddrs ? localStorage.etherAddrs : undefined,
       }
+    },
+    methods:{
+      logout(){
+        localStorage.etherAddrs='';
+        location.reload();
+      },
     }
   }
 </script>

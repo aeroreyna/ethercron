@@ -8,6 +8,7 @@ module.exports = {
     lag: true,
     selected: -1,
     lastTrendData: [],
+    addrsInput: "",
   },
   getAddressInfo: function(){
     if(!this.data.addrs) return 0;
@@ -15,17 +16,19 @@ module.exports = {
     .then((response)=> {
       this.info = response.data;
       this.data.ETH = response.data.ETH;
-      response.data.tokens.forEach((t)=>{
-        this.data.tokens.push({
-          name: t.tokenInfo.name,
-          short: t.tokenInfo.symbol,
-          address: t.tokenInfo.address,
-          price: t.tokenInfo.price.rate,
-          amount: t.balance/Math.pow(10,t.tokenInfo.decimals),
-          balance: t.tokenInfo.price.rate * t.balance/Math.pow(10,t.tokenInfo.decimals),
-          txs: [],
-        })
-      });
+      if(response.data.tokens){
+        response.data.tokens.forEach((t)=>{
+          this.data.tokens.push({
+            name: t.tokenInfo.name,
+            short: t.tokenInfo.symbol,
+            address: t.tokenInfo.address,
+            price: t.tokenInfo.price.rate,
+            amount: t.balance/Math.pow(10,t.tokenInfo.decimals),
+            balance: t.tokenInfo.price.rate * t.balance/Math.pow(10,t.tokenInfo.decimals),
+            txs: [],
+          })
+        });
+      }
       this.updateAllPrices();
       this.getAddressHistory();
     })
@@ -52,6 +55,7 @@ module.exports = {
       .then(function (response) {
         temp.price  = response.data.USD;
         temp.priceETH = response.data.ETH;
+        temp.rise = temp.balance == (temp.amount * temp.price) ? temp.rise : temp.balance < (temp.amount * temp.price);
         temp.balance = temp.amount * temp.price;
         counter++;
         if(counter==tokens.length){
@@ -66,7 +70,7 @@ module.exports = {
     });
     setTimeout(()=>{
       this.updateAllPrices();
-    }, 10000);
+    }, 5000);
   },
   getAddressHistory: function(){
     var addrs = this.data.addrs.toLowerCase();
